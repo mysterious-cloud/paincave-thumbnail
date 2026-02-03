@@ -1,9 +1,10 @@
 [project]
 name = "paincave-thumbnail"
 version = "0.1.0"
-description = "Local thumbnail generation for Pain Cave tracks"
+description = "Thumbnail generation for Pain Cave tracks"
 requires-python = ">=3.11"
 dependencies = [
-    "requests>=2.28.0",
+    "anthropic>=0.40.0",
+    "together>=2.0.0a1",
     "Pillow>=10.0.0",
 ]

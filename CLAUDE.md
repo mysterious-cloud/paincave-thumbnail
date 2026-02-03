@@ -1,58 +1,67 @@
 # Pain Cave Thumbnail
 
-Local thumbnail generation for Pain Cave tracks using Stable Diffusion via ComfyUI on Apple Silicon.
+Thumbnail generation for Pain Cave tracks using FLUX.1-schnell via Together AI.
 
 ## Philosophy
 
 - **Ship fast, no slop.** Generated art should match the track's mood and energy.
-- **Brief code.** Thin Python wrapper around ComfyUI workflows.
-- **Local-first.** Everything runs on MacBook, no cloud dependencies.
+- **Brief code.** Single-file CLI, no unnecessary abstractions.
 - **Zero warnings, zero errors.** Verify before committing.
 
 ## Tech Stack
 
 - **Runtime:** Python 3.11+ via uv
-- **Image Generation:** Stable Diffusion via ComfyUI
+- **Image Generation:** FLUX.1-schnell via Together AI API
+- **Prompt Generation:** Claude Haiku via Anthropic API
 - **Image Processing:** Pillow
 - **CLI:** argparse
 
 ## Project Structure
 
 ```
-src/           # Source modules (flat layout)
-docs/          # Specs and standards
+bin/thumbnail.sh   # Pipeline entry point — sources .env, delegates to generate.py
+src/generate.py    # Single-file CLI — prompt generation + image generation + resizing
+docs/              # Specs and standards
 ```
 
 ## How It Works
 
-1. Takes track metadata (name, genre, mood, BPM) as input
-2. Builds a prompt from metadata
-3. Sends workflow JSON to ComfyUI REST API
-4. Polls until generation complete
-5. Retrieves and post-processes the generated image
-6. Outputs sized thumbnails for the app
+1. Takes a track content hash as input
+2. Reads `metadata.json` from `../paincave-tracks/{hash}/`
+3. Sends metadata (title, styleTags, BPM, key) to Claude to generate an image prompt
+4. Generates a 512x512 image with FLUX.1-schnell via Together AI
+5. Saves `thumbnail.png` and resized versions (256, 128, 64) to the track directory
 
 ## Environment Variables
 
-- `COMFYUI_URL` — ComfyUI API endpoint (default `http://localhost:8188`)
+- `TOGETHER_API_KEY` — Together AI key (required, used for image generation)
+- `ANTHROPIC_API_KEY` — Anthropic API key (required, used for prompt generation)
+- `IMAGE_MODEL` — Image model (optional, default `black-forest-labs/FLUX.1-schnell`)
+- `AI_MODEL` — LLM model for prompts (optional, default `anthropic:claude-haiku-4-5`)
 - `PAINCAVE_TRACKS_DIR` — Default tracks directory. CLI args override.
 
 ## Conventions
 
-- Flat `src/` layout, no packages or `__init__.py`
-- ComfyUI workflows exported as JSON and checked into repo
+- Single-file `src/generate.py`, no packages or `__init__.py`
 - All CLI commands use argparse
-- ComfyUI must be running as a background process
+- Track hashes as input, metadata read from paincave-tracks directory
 
 ## Standards Documents
 
-- [docs/thumbnail-generation.md](docs/thumbnail-generation.md) — Workflow design, prompt templates, output specs
+- [docs/thumbnail-generation.md](docs/thumbnail-generation.md) — Prompt strategy, model config, output specs
+- [Track Pipeline](../paincave/docs/track-pipeline.md) — End-to-end flow from raw audio to production. Where this project fits in the pipeline, track directory structure, shared contracts.
 
 ## Running
 
 ```bash
-# ComfyUI must be running first
-uv run src/generate.py --track-name "Midnight Grind" --genre "dark techno" --mood "aggressive" -o thumbnail.png
+# Pipeline usage
+bin/thumbnail.sh {track-hash}
+
+# With a fixed seed for reproducibility
+bin/thumbnail.sh {track-hash} --seed 42
+
+# Print the generated prompt without creating an image
+bin/thumbnail.sh {track-hash} --prompt-only
 ```
 
 ## AI Assistant Guidelines
@@ -61,8 +70,7 @@ uv run src/generate.py --track-name "Midnight Grind" --genre "dark techno" --moo
 - **No slop.** Every generated line must be intentional.
 - **Brief is better.** Fewer lines, same clarity.
 - **Verify with `uv run`** before considering anything done.
-- **No unnecessary abstractions** — this is a CLI tool.
-- Workflow JSON is the source of truth for image generation parameters.
+- **No unnecessary abstractions** — this is a single-file CLI tool.
 
 ### Before Committing Code
 1. Zero errors when running

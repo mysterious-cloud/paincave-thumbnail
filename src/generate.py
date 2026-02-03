@@ -95,7 +95,8 @@ def generate(track_hash: str, seed: int | None = None):
     print(f"Track:  {title}")
     print(f"Prompt: {prompt}")
     print(f"Seed:   {actual_seed}")
-    print(f"Generating 512x512 with FLUX.1-schnell via Together AI...")
+    model = os.environ.get("IMAGE_MODEL", "black-forest-labs/FLUX.1-schnell")
+    print(f"Generating 512x512 with {model.split('/')[-1]} via Together AI...")
 
     pil_img = generate_image(prompt, actual_seed)
     pil_img.save(track_dir / "thumbnail.png")

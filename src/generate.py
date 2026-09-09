@@ -16,22 +16,27 @@ from together import Together
 
 TRACKS_DIR = Path(os.environ.get("PAINCAVE_TRACKS_DIR", Path(__file__).parent.parent / ".." / "paincave-tracks"))
 SIZES = [256, 128, 64]
+WEBP_QUALITY = 85
 
 SYSTEM_PROMPT = """\
 You are a visual concept designer for album artwork. Given track metadata, \
 you produce a single image generation prompt for FLUX.1 (a text-to-image AI model).
 
+Style — surrealist fine art like Magritte, de Chirico, or Dalí:
+- Night cities with glowing windows, neon reflections, rain-slicked streets
+- Dramatic cloud formations, skies that dominate the frame
+- Surreal cityscapes, impossible architecture, liminal spaces
+- Cosmic vistas, nebulae, planets, vast empty space
+- Silhouetted figures, distant people, mysterious observers
+- Dreamlike atmosphere, mysterious and contemplative
+- Rich color palettes, dramatic lighting, deep shadows
+
 Rules:
-- Describe a vivid surreal scene, abstract 3D object, macro texture, or dreamlike landscape.
-- Use the track title as inspiration for the CONCEPT, but never include the title's actual words.
-- Each track variant (edits, remixes) should get a distinctly different visual concept.
-- Use the genre, BPM, and musical key to inform texture, energy, and color palette.
-- Bold simple compositions with large shapes — must look good at 128x128 pixels.
-- CRITICAL: Never mention text, typography, letters, words, or writing in ANY way. \
-  Simply describe the visual scene without referencing text at all.
-- Clean unmarked surfaces only. No signage, labels, logos, or UI elements.
-- No people, faces, or human figures.
-- Output ONLY the prompt, nothing else. No preamble, no explanation.\
+- Use the track title as loose thematic inspiration, never the literal words.
+- Match mood to BPM: slow = mysterious/meditative, fast = intense/dynamic.
+- Bold simple compositions — must read well at 128x128 pixels.
+- CRITICAL: Never mention text, typography, letters, or writing. Just describe the visual.
+- Output ONLY the prompt, nothing else.\
 """
 
 
@@ -76,8 +81,21 @@ def generate_image(prompt: str, seed: int) -> Image.Image:
 
 # --- Generation ---
 
-def generate(track_hash: str, seed: int | None = None):
-    track_dir = TRACKS_DIR / track_hash
+def resolve_track_dir(track_ref: str) -> Path:
+    """Resolve a track reference to a directory. Accepts hash or path."""
+    ref_path = Path(track_ref)
+    if ref_path.is_dir():
+        return ref_path.resolve()
+    if "/" in track_ref or track_ref.startswith("."):
+        # Looks like a path but doesn't exist
+        print(f"Track directory not found: {track_ref}", file=sys.stderr)
+        sys.exit(1)
+    # Treat as hash
+    return TRACKS_DIR / track_ref
+
+
+def generate(track_ref: str, seed: int | None = None):
+    track_dir = resolve_track_dir(track_ref)
     meta_path = track_dir / "metadata.json"
 
     if not track_dir.is_dir():
@@ -88,7 +106,7 @@ def generate(track_hash: str, seed: int | None = None):
         sys.exit(1)
 
     meta = json.loads(meta_path.read_text())
-    title = meta.get("title", track_hash)
+    title = meta.get("title", track_dir.name)
     prompt = build_prompt(meta)
     actual_seed = seed if seed is not None else random.randint(0, 2**32 - 1)
 
@@ -99,14 +117,18 @@ def generate(track_hash: str, seed: int | None = None):
     print(f"Generating 512x512 with {model.split('/')[-1]} via Together AI...")
 
     pil_img = generate_image(prompt, actual_seed)
-    pil_img.save(track_dir / "thumbnail.png")
-    print(f"Saved:  {track_dir / 'thumbnail.png'}")
 
+    # Save full resolution
+    full_path = track_dir / "thumb.webp"
+    pil_img.save(full_path, "WEBP", quality=WEBP_QUALITY)
+    print(f"Saved:  {full_path}")
+
+    # Save resized versions
     for size in SIZES:
         resized = pil_img.resize((size, size), Image.LANCZOS)
-        sized_path = track_dir / f"thumbnail-{size}.png"
-        resized.save(sized_path)
-        print(f"Saved:  {sized_path}")
+        out_path = track_dir / f"thumb_{size}.webp"
+        resized.save(out_path, "WEBP", quality=WEBP_QUALITY)
+        print(f"Saved:  {out_path}")
 
     print("Done.")
 
@@ -118,19 +140,19 @@ def main():
         prog="generate.py",
         description="Generate thumbnail for a Pain Cave track",
     )
-    parser.add_argument("hash", help="Track content hash")
+    parser.add_argument("track", help="Track hash or path to track directory")
     parser.add_argument("--seed", type=int, default=None, help="RNG seed for reproducibility")
     parser.add_argument("--prompt-only", action="store_true", help="Print prompt and exit")
 
     args = parser.parse_args()
 
     if args.prompt_only:
-        track_dir = TRACKS_DIR / args.hash
+        track_dir = resolve_track_dir(args.track)
         meta = json.loads((track_dir / "metadata.json").read_text())
         print(build_prompt(meta))
         return
 
-    generate(args.hash, seed=args.seed)
+    generate(args.track, seed=args.seed)
 
 
 if __name__ == "__main__":

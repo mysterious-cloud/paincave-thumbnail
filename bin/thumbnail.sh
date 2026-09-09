@@ -1,14 +1,6 @@
 #!/usr/bin/env bash
+# Pain Cave Thumbnail — generation CLI wrapper
 set -euo pipefail
 
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-PROJECT_DIR="$(dirname "$SCRIPT_DIR")"
-
-# Load env vars
-if [[ -f "$PROJECT_DIR/.env" ]]; then
-  set -a
-  source "$PROJECT_DIR/.env"
-  set +a
-fi
-
-exec uv run --project "$PROJECT_DIR" "$PROJECT_DIR/src/generate.py" "$@"
+PROJECT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+exec uv run --project "$PROJECT_DIR" python "$PROJECT_DIR/src/generate.py" "$@"

@@ -26,11 +26,11 @@ docs/              # Specs and standards
 
 ## How It Works
 
-1. Takes a track content hash as input
-2. Reads `metadata.json` from `../paincave-tracks/{hash}/`
-3. Sends metadata (title, styleTags, BPM, key) to Claude to generate an image prompt
+1. Takes a track hash or path as input
+2. Reads `metadata.json` from the track directory
+3. Sends metadata (title, genres, BPM, key) to Claude to generate an image prompt
 4. Generates a 512x512 image with FLUX.1-schnell via Together AI
-5. Saves `thumbnail.png` and resized versions (256, 128, 64) to the track directory
+5. Saves `thumb.webp` (512) and resized versions (256, 128, 64) as WebP
 
 ## Environment Variables
 
@@ -44,7 +44,7 @@ docs/              # Specs and standards
 
 - Single-file `src/generate.py`, no packages or `__init__.py`
 - All CLI commands use argparse
-- Track hashes as input, metadata read from paincave-tracks directory
+- Accepts track hash or path to track directory
 
 ## Standards Documents
 
@@ -54,14 +54,17 @@ docs/              # Specs and standards
 ## Running
 
 ```bash
-# Pipeline usage
-bin/thumbnail.sh {track-hash}
+# By hash (looks up in PAINCAVE_TRACKS_DIR)
+bin/thumbnail.sh 98f755fef882
+
+# By path (direct)
+bin/thumbnail.sh ../paincave-tracks/98f755fef882/
 
 # With a fixed seed for reproducibility
-bin/thumbnail.sh {track-hash} --seed 42
+bin/thumbnail.sh 98f755fef882 --seed 42
 
 # Print the generated prompt without creating an image
-bin/thumbnail.sh {track-hash} --prompt-only
+bin/thumbnail.sh 98f755fef882 --prompt-only
 ```
 
 ## AI Assistant Guidelines

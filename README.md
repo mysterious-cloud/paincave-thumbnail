@@ -1,11 +1,10 @@
 # paincave-thumbnail
 
-Generates cover art for a Pain Cave track. Last step of the track import
-pipeline: SUNO → `paincave-audio` → `paincave-analysis` (hash, peaks, m4a) →
-**thumbnail** → Studio → production.
+Generates cover art for a Pain Cave track. Pipeline: SUNO → `paincave-audio` →
+`paincave-analysis` (hash, peaks, m4a) → **thumbnail** → Studio → production.
 
-**Status:** active. Called by `../paincave/bin/import.sh` (step 3/3) and
-`../paincave/bin/thumbnail.sh`.
+**Status:** active. Last step of `../paincave/bin/import.sh` (step 3/3); also
+run standalone via `../paincave/bin/thumbnail.sh`.
 
 Big picture: [`../paincave/docs/architecture.md`](../paincave/docs/architecture.md),
 current work: [`../paincave/docs/plan.md`](../paincave/docs/plan.md).

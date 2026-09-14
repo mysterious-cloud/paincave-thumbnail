@@ -13,6 +13,7 @@ Shared conventions, pipeline and workflow: `../paincave/CLAUDE.md` and
 - Real runs cost API calls and overwrite `thumb*.webp` in the track directory.
   Iterate on prompts with `--prompt-only`; generate only when asked.
 - The image prompt must never mention text, letters or typography — FLUX renders it.
-- Output names and sizes are a contract with `../paincave/docs/images.md` and
-  `../paincave/docs/track-pipeline.md`. Change them together or not at all.
+- Output names and sizes are a contract with `getThumbnailUrl` in
+  `../paincave/ui/src/lib/track-utils.ts` (documented in
+  `../paincave/docs/ui.md`, Thumbnails). Change them together or not at all.
 - Verify before done: `uv run python src/generate.py --help`.

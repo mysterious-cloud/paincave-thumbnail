@@ -1,7 +1,8 @@
 # paincave-thumbnail
 
 Generates cover art for a Pain Cave track. Pipeline: SUNO → `paincave-audio` →
-`paincave-analysis` (hash, peaks, m4a) → **thumbnail** → Studio → production.
+`paincave-analysis` (hash, peaks, m4a) → **thumbnail**, then `bun run db:sync-tracks`
+in `../paincave` ([content flow](../paincave/docs/architecture.md#content-flow-as-built)).
 
 **Status:** active. Last step of `../paincave/bin/import.sh` (step 3/3); also
 run standalone via `../paincave/bin/thumbnail.sh`.
@@ -20,16 +21,8 @@ uv sync   # Python >=3.11
 No local `.env`. Keys live in `../paincave/.env`, loaded by
 `../paincave/bin/_common.sh` when you go through the paincave wrappers.
 This repo's own `bin/thumbnail.sh` loads nothing — export the vars yourself.
-
-| Var | Required | Default |
-|-----|----------|---------|
-| `ANTHROPIC_API_KEY` | yes (also for `--prompt-only`) | — |
-| `TOGETHER_API_KEY` | yes, for image generation | — |
-| `AI_MODEL` | no | `anthropic:claude-haiku-4-5` (prefix before `:` is stripped) |
-| `IMAGE_MODEL` | no | `black-forest-labs/FLUX.1-schnell` |
-| `PAINCAVE_TRACKS_DIR` | no | `../paincave-tracks` (`import.sh` sets it) |
-
-`.env.example` predates the move to `../paincave/.env`.
+Variables and defaults: [`../paincave/docs/development.md` §4](../paincave/docs/development.md#4-environment-variables).
+`--prompt-only` needs `ANTHROPIC_API_KEY` but not `TOGETHER_API_KEY`.
 
 ## Usage
 

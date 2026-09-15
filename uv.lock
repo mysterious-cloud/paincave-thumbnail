@@ -269,7 +269,7 @@ dependencies = [
 [package.metadata]
 requires-dist = [
     { name = "anthropic", specifier = ">=0.40.0" },
-    { name = "pillow", specifier = ">=10.0.0" },
+    { name = "pillow", specifier = ">=11.3.0" },
     { name = "together", specifier = ">=2.0.0a1" },
 ]
 

@@ -6,5 +6,5 @@ requires-python = ">=3.11"
 dependencies = [
     "anthropic>=0.40.0",
     "together>=2.0.0a1",
-    "Pillow>=10.0.0",
+    "Pillow>=11.3.0",
 ]

@@ -13,7 +13,8 @@ Shared conventions, pipeline and workflow: `../paincave/CLAUDE.md` and
 - Run through `../paincave/bin/thumbnail.sh` so env is loaded.
 - New renders cost API calls; existing art is skipped/repaired locally unless
   `--regenerate` is supplied. `--prompt-only` saves/reuses a recipe;
-  `--new-prompt` requests a fresh paid Claude concept. Generate only when asked.
+  `--new-prompt` requests a fresh Claude concept. Generate only when asked.
+- Claude only through mysterious-llm (`LLM_URL`), never the Anthropic API or a key.
 - The image prompt must never mention text, letters or typography — FLUX renders it.
 - Output names and sizes are a contract with `getThumbnailUrl` in
   `../paincave/ui/src/lib/track-utils.ts` (documented in

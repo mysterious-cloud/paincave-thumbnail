@@ -12,7 +12,6 @@ import tempfile
 import unittest
 from unittest.mock import patch
 
-import anthropic
 import httpx
 from PIL import Image
 from together import Together
@@ -42,10 +41,7 @@ class ThumbnailTests(unittest.TestCase):
         self.enterContext(
             patch.dict(
                 os.environ,
-                {
-                    "ANTHROPIC_API_KEY": "audit-placeholder",
-                    "TOGETHER_API_KEY": "audit-placeholder",
-                },
+                {"TOGETHER_API_KEY": "audit-placeholder"},
                 clear=True,
             )
         )
@@ -58,7 +54,9 @@ class ThumbnailTests(unittest.TestCase):
         )
         self.prompt = self.enterContext(
             patch.object(
-                g, "build_prompt", return_value="An amber moon over a cobalt sea"
+                g,
+                "build_prompt",
+                return_value=("An amber moon over a cobalt sea", "haiku"),
             )
         )
         self.render = self.enterContext(
@@ -159,7 +157,6 @@ class ThumbnailTests(unittest.TestCase):
         self.run_generator(prompt_only=True, seed=42)
         self.render.assert_not_called()
         os.environ["TOGETHER_API_KEY"] = "audit-placeholder"
-        os.environ.pop("ANTHROPIC_API_KEY")
         self.run_generator()
         self.prompt.assert_called_once()
         self.assertEqual(self.render.call_args.args[0]["seed"], 42)
@@ -177,7 +174,6 @@ class ThumbnailTests(unittest.TestCase):
             self.run_generator(seed=123, steps=9)
         original = self.render.call_args.args[0]
         self.render.side_effect = None
-        os.environ.pop("ANTHROPIC_API_KEY")
         self.run_generator()
         self.prompt.assert_called_once()
         self.assertEqual(original, self.render.call_args.args[0])
@@ -193,7 +189,7 @@ class ThumbnailTests(unittest.TestCase):
 
     def test_explicit_new_prompt_replaces_cached_prompt(self):
         self.run_generator(prompt_only=True)
-        self.prompt.return_value = "A floating arch"
+        self.prompt.return_value = ("A floating arch", "haiku")
         self.run_generator(prompt_only=True, new_prompt=True)
         self.assertEqual(self.prompt.call_count, 2)
         self.assertEqual(
@@ -437,47 +433,36 @@ class ProviderTests(unittest.TestCase):
             with self.subTest(data=str(data)[:80]), self.assertRaises(ValueError):
                 self.image_response(data, [])
 
-    def test_anthropic_receives_genres_and_rejects_truncation(self):
+    def test_mysterious_llm_receives_genres_and_needs_no_key(self):
         requests = []
-        for stop in ("end_turn", "max_tokens"):
 
-            def handler(request):
-                requests.append(json.loads(request.content))
-                return httpx.Response(
-                    200,
-                    json={
-                        "id": "msg_audit",
-                        "model": "claude-haiku-4-5",
-                        "role": "assistant",
-                        "type": "message",
-                        "content": [{"type": "text", "text": "A floating moon"}],
-                        "stop_reason": stop,
-                        "stop_sequence": None,
-                        "usage": {"input_tokens": 10, "output_tokens": 5},
-                    },
+        def answer(text):
+            def urlopen(request, timeout):
+                requests.append(request)
+                return contextlib.nullcontext(
+                    io.BytesIO(json.dumps({"text": text, "model": "haiku"}).encode())
                 )
 
-            client = anthropic.Anthropic(
-                api_key="audit-placeholder",
-                http_client=httpx.Client(transport=httpx.MockTransport(handler)),
-            )
-            with (
-                patch.dict(
-                    os.environ, {"ANTHROPIC_API_KEY": "audit-placeholder"}, clear=True
-                ),
-                patch.object(g.anthropic, "Anthropic", return_value=client),
+            return urlopen
+
+        meta = {"title": "Audit", "genres": ["tech-house"]}
+        with patch.dict(os.environ, {}, clear=True):
+            with patch.object(
+                g.urllib.request, "urlopen", answer(" A floating moon \n")
             ):
-                if stop == "end_turn":
-                    self.assertEqual(
-                        g.build_prompt({"title": "Audit", "genres": ["tech-house"]}),
-                        "A floating moon",
-                    )
-                else:
-                    with self.assertRaisesRegex(ValueError, "did not finish"):
-                        g.build_prompt({"title": "Audit", "genres": ["tech-house"]})
-        self.assertEqual(
-            json.loads(requests[0]["messages"][0]["content"])["genres"], ["tech-house"]
-        )
+                self.assertEqual(g.build_prompt(meta), ("A floating moon", "haiku"))
+            with patch.object(g.urllib.request, "urlopen", answer("")):
+                with self.assertRaisesRegex(ValueError, "nonempty"):
+                    g.build_prompt(meta)
+            with patch.object(
+                g.urllib.request, "urlopen", side_effect=ConnectionRefusedError()
+            ):
+                with self.assertRaisesRegex(ValueError, "mysterious-dashboard"):
+                    g.build_prompt(meta)
+        self.assertEqual(requests[0].full_url, g.LLM_URL)
+        body = json.loads(requests[0].data)
+        self.assertEqual(body["system"], g.SYSTEM_PROMPT)
+        self.assertEqual(json.loads(body["prompt"])["genres"], ["tech-house"])
 
 
 if __name__ == "__main__":

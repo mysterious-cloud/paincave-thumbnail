@@ -28,13 +28,13 @@ Variables and defaults: [`../paincave/docs/development.md` §4](../paincave/docs
 
 | Variable | Default / when needed |
 |---|---|
-| `AI_MODEL` | `anthropic:claude-haiku-4-5`; used only for a fresh prompt |
+| `MYSTERIOUS_LLM_URL` | `http://127.0.0.1:5140/v1/paincave-thumbnail/run`; a fresh prompt asks Claude there (mysterious-llm, the owner's subscription: every LLM call goes through it, never an API key) |
 | `IMAGE_MODEL` | `Rundiffusion/Juggernaut-Lightning-Flux` for a new recipe; overrides a saved model when set |
-| `ANTHROPIC_API_KEY` | Needed only when asking Claude for a fresh prompt |
 | `TOGETHER_API_KEY` | Needed only when rendering a new image |
 
 Skipping existing artwork, repairing derivatives and printing a cached prompt need
-no API keys. Rendering a saved/supplied prompt needs only the Together key.
+no API keys. Rendering a saved/supplied prompt needs only the Together key. A fresh
+prompt needs mysterious-llm running (`mysterious llm health`).
 Remove or update any old `IMAGE_MODEL=black-forest-labs/FLUX.1-schnell` override:
 Together now marks that serverless endpoint unavailable, and the CLI rejects it
 before spending on a prompt. [Provider status](https://www.together.ai/models/flux-1-schnell-2).
@@ -67,7 +67,9 @@ can change the saved prompt without changing artwork.
 
 ## How it works
 
-1. Reuse `thumbnail-prompt.json` when present. Otherwise Claude (`AI_MODEL`) turns
+1. Reuse `thumbnail-prompt.json` when present. Otherwise Claude, through
+   mysterious-llm (the `paincave-thumbnail` app: `mysterious llm show
+   paincave-thumbnail`, which picks the model; no API key), turns
    `title`, `genres`, `bpm`, `key` from `metadata.json` into one image prompt.
    System prompt (`SYSTEM_PROMPT` in `src/generate.py`):
    surrealist fine art (Magritte, de Chirico, Dalí), night cities, big skies,
@@ -114,7 +116,7 @@ This is process-interruption recovery, not a power-loss durability guarantee.
 
 After an image request fails, retry the ordinary command (add `--regenerate` if
 replacing existing art). Omit `--new-prompt` to reuse the saved concept and seed.
-Claude has a 30-second request timeout and one automatic retry. Together has a
+The prompt request to mysterious-llm waits up to 180 seconds, with no retry. Together has a
 60-second request timeout and no automatic retries: an ambiguous timeout may have
 already generated a billed image, so rerunning explicitly can incur another charge.
 

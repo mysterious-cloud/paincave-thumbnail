@@ -4,7 +4,6 @@ version = "0.1.0"
 description = "Thumbnail generation for Pain Cave tracks"
 requires-python = ">=3.11"
 dependencies = [
-    "anthropic>=0.40.0",
     "together>=2.0.0a1",
     "Pillow>=11.3.0",
 ]

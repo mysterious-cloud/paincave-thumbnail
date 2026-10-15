@@ -11,11 +11,12 @@ import os
 import random
 import sys
 import tempfile
+import urllib.error
+import urllib.request
 from contextlib import contextmanager
 from io import BytesIO
 from pathlib import Path
 
-import anthropic
 from PIL import Image, features
 from together import Together, TogetherError
 
@@ -30,6 +31,10 @@ OUTPUTS = {
     "thumb_128.avif": 128,
     "thumb_64.avif": 64,
 }
+# Every LLM call goes through mysterious-llm (mysterious-process docs/llm/README.md); the app's profile picks the model
+LLM_URL = os.environ.get(
+    "MYSTERIOUS_LLM_URL", "http://127.0.0.1:5140/v1/paincave-thumbnail/run"
+)
 DEFAULT_IMAGE_MODEL = "Rundiffusion/Juggernaut-Lightning-Flux"
 DEFAULT_STEPS = {DEFAULT_IMAGE_MODEL: 28}
 RETIRED_MODELS = {
@@ -61,36 +66,32 @@ Rules:
 """
 
 
-def prompt_model() -> str:
-    model = os.environ.get("AI_MODEL", "anthropic:claude-haiku-4-5")
-    if ":" in model and not model.startswith("anthropic:"):
-        raise ValueError("AI_MODEL must name an Anthropic model")
-    model = model.removeprefix("anthropic:").strip()
-    if not model:
-        raise ValueError("AI_MODEL must be nonempty")
-    return model
-
-
 def require_key(name: str):
     if not os.environ.get(name, "").strip():
         raise ValueError(f"{name} is required for this operation")
 
 
-def build_prompt(meta: dict) -> str:
-    require_key("ANTHROPIC_API_KEY")
+def build_prompt(meta: dict) -> tuple[str, str]:
+    """Claude writes the image prompt through mysterious-llm (the owner's subscription, no API key): (prompt, model)."""
     message = {key: meta.get(key) for key in ("title", "genres", "bpm", "key")}
-    with anthropic.Anthropic(timeout=30, max_retries=1) as client:
-        response = client.messages.create(
-            model=prompt_model(),
-            max_tokens=300,
-            system=SYSTEM_PROMPT,
-            messages=[{"role": "user", "content": json.dumps(message)}],
-        )
-    if response.stop_reason != "end_turn":
-        raise ValueError(f"Prompt generation did not finish: {response.stop_reason}")
-    return validate_prompt(
-        "\n".join(block.text for block in response.content if block.type == "text")
+    request = urllib.request.Request(
+        LLM_URL,
+        data=json.dumps(
+            {"system": SYSTEM_PROMPT, "prompt": json.dumps(message)}
+        ).encode(),
+        headers={"content-type": "application/json"},
     )
+    try:
+        with urllib.request.urlopen(request, timeout=180) as response:
+            answer = json.load(response)
+    except urllib.error.HTTPError as exc:
+        detail = exc.read().decode(errors="replace")[:200]
+        raise ValueError(f"mysterious-llm refused the prompt ({exc.code}): {detail}") from exc
+    except OSError as exc:
+        raise ValueError(
+            f"mysterious-llm is unreachable at {LLM_URL} (mysterious start mysterious-dashboard): {exc}"
+        ) from exc
+    return validate_prompt(answer.get("text")), answer.get("model") or "mysterious-llm"
 
 
 def validate_prompt(prompt) -> str:
@@ -316,8 +317,7 @@ def prepare_recipe(
             not isinstance(g, str) for g in meta.get("genres", [])
         ):
             raise ValueError("metadata.json genres must be a list of strings")
-        prompt = build_prompt(meta)
-        source = prompt_model()
+        prompt, source = build_prompt(meta)
     recipe = {
         "version": 1,
         "prompt": prompt,
@@ -440,7 +440,7 @@ def main():
             new_prompt=args.new_prompt,
             steps=args.steps,
         )
-    except (OSError, ValueError, anthropic.APIError, TogetherError) as exc:
+    except (OSError, ValueError, TogetherError) as exc:
         print(f"Thumbnail error: {exc}", file=sys.stderr)
         return 1
     return 0

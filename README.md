@@ -28,7 +28,7 @@ Variables and defaults: [`../paincave/docs/development.md` §4](../paincave/docs
 
 | Variable | Default / when needed |
 |---|---|
-| `MYSTERIOUS_LLM_URL` | `http://127.0.0.1:5140/v1/paincave-thumbnail/run`; a fresh prompt asks Claude there (mysterious-llm, the owner's subscription: every LLM call goes through it, never an API key) |
+| `THUMBNAIL_LLM_URL` | `http://127.0.0.1:5140/v1/paincave-thumbnail/run`; a fresh prompt asks Claude there (mysterious-llm, the owner's subscription: every LLM call goes through it, never an API key) |
 | `IMAGE_MODEL` | `Rundiffusion/Juggernaut-Lightning-Flux` for a new recipe; overrides a saved model when set |
 | `TOGETHER_API_KEY` | Needed only when rendering a new image |
 

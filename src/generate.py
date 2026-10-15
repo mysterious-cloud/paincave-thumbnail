@@ -33,7 +33,7 @@ OUTPUTS = {
 }
 # Every LLM call goes through mysterious-llm (mysterious-process docs/llm/README.md); the app's profile picks the model
 LLM_URL = os.environ.get(
-    "MYSTERIOUS_LLM_URL", "http://127.0.0.1:5140/v1/paincave-thumbnail/run"
+    "THUMBNAIL_LLM_URL", "http://127.0.0.1:5140/v1/paincave-thumbnail/run"
 )
 DEFAULT_IMAGE_MODEL = "Rundiffusion/Juggernaut-Lightning-Flux"
 DEFAULT_STEPS = {DEFAULT_IMAGE_MODEL: 28}

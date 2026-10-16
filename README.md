@@ -41,12 +41,12 @@ before spending on a prompt. [Provider status](https://www.together.ai/models/fl
 
 ## Usage
 
-The argument is a track hash (looked up in `PAINCAVE_TRACKS_DIR`) or a path to
+The argument is a track hash (looked up in `PAINCAVE_TRACKS_DIR`, else `../paincave-tracks/library`) or a path to
 a track directory. `metadata.json` is required only to ask Claude for a new prompt.
 
 ```bash
 ../paincave/bin/thumbnail.sh 33b46e5c8cdd                       # skip, repair, or generate
-../paincave/bin/thumbnail.sh ../paincave-tracks/33b46e5c8cdd/   # by path
+../paincave/bin/thumbnail.sh ../paincave-tracks/library/33b46e5c8cdd/   # by path
 ../paincave/bin/thumbnail.sh 33b46e5c8cdd --prompt-only         # save/reuse prompt, print it
 ../paincave/bin/thumbnail.sh 33b46e5c8cdd --prompt-only --new-prompt  # pay for fresh concept
 ../paincave/bin/thumbnail.sh 33b46e5c8cdd --regenerate --seed 42 # render using saved prompt

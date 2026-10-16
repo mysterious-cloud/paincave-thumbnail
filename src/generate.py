@@ -22,7 +22,7 @@ from together import Together, TogetherError
 
 TRACKS_DIR = Path(
     os.environ.get(
-        "PAINCAVE_TRACKS_DIR", Path(__file__).parent.parent / ".." / "paincave-tracks"
+        "PAINCAVE_TRACKS_DIR", Path(__file__).parent.parent / ".." / "paincave-tracks" / "library"
     )
 )
 OUTPUTS = {
